@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Build files
+*.zip
+*.tar.gz
+
+# Logs
+*.log
+debug.log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Node modules (if any)
+node_modules/
+
+# Composer (if any)
+vendor/
+
