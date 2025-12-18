@@ -58,9 +58,7 @@ class Wprosh_Admin {
         add_action('wp_ajax_wprosh_export', array($this, 'ajax_export'));
         add_action('wp_ajax_wprosh_import', array($this, 'ajax_import'));
         add_action('wp_ajax_wprosh_get_stats', array($this, 'ajax_get_stats'));
-        
-        // Handle direct download
-        add_action('admin_init', array($this, 'handle_download'));
+        add_action('wp_ajax_wprosh_download', array($this, 'ajax_download'));
     }
     
     /**
@@ -296,7 +294,7 @@ class Wprosh_Admin {
     }
     
     /**
-     * AJAX: Export products
+     * AJAX: Export products - returns download URL
      */
     public function ajax_export() {
         // Verify nonce
@@ -316,14 +314,14 @@ class Wprosh_Admin {
             wp_send_json_error(array('message' => 'هیچ محصولی برای خروجی وجود ندارد.'));
         }
         
-        // Generate a secure download URL instead of saving file
-        $download_url = wp_nonce_url(
-            admin_url('admin.php?page=wprosh&action=download'),
-            'wprosh_download'
-        );
+        // Return download URL that points to AJAX download handler
+        $download_url = add_query_arg(array(
+            'action' => 'wprosh_download',
+            'nonce' => wp_create_nonce('wprosh_nonce'),
+        ), admin_url('admin-ajax.php'));
         
         wp_send_json_success(array(
-            'message' => 'در حال آماده‌سازی فایل...',
+            'message' => 'در حال دانلود فایل...',
             'download_url' => $download_url,
             'file_name' => 'wprosh-products-' . date('Y-m-d-H-i-s') . '.csv',
             'stats' => $stats,
@@ -423,30 +421,23 @@ class Wprosh_Admin {
     }
     
     /**
-     * Handle direct download request
+     * AJAX: Download CSV file (streams directly to browser)
      */
-    public function handle_download() {
-        if (!isset($_GET['page']) || $_GET['page'] !== 'wprosh') {
-            return;
-        }
-        
-        if (!isset($_GET['action']) || $_GET['action'] !== 'download') {
-            return;
-        }
-        
-        // Check nonce
-        if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'wprosh_download')) {
-            wp_die('خطای امنیتی.');
+    public function ajax_download() {
+        // Verify nonce
+        if (!check_ajax_referer('wprosh_nonce', 'nonce', false)) {
+            wp_die('خطای امنیتی. لطفاً صفحه را رفرش کنید.');
         }
         
         // Check permission
         if (!current_user_can('edit_products')) {
-            wp_die('شما دسترسی ندارید.');
+            wp_die('شما دسترسی به این عملیات را ندارید.');
         }
         
-        // Stream export
+        // Stream export directly to browser
         $exporter = new Wprosh_Exporter();
         $exporter->stream_export();
+        // stream_export calls exit() so nothing after this runs
     }
 }
 
