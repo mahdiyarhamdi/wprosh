@@ -180,14 +180,18 @@
             },
             success: function(response) {
                 if (response.success) {
-                    showToast(response.data.message, 'success');
-                    
-                    // Download file
-                    downloadFile(response.data.download_url, response.data.file_name);
+                    showToast(wproshData.strings.exporting, 'success');
                     
                     // Update stats if available
                     if (response.data.stats) {
                         updateStats(response.data.stats);
+                    }
+                    
+                    // Use redirect for download (more reliable)
+                    if (response.data.use_redirect) {
+                        window.location.href = response.data.download_url;
+                    } else {
+                        downloadFile(response.data.download_url, response.data.file_name);
                     }
                 } else {
                     showToast(response.data.message || wproshData.strings.exportError, 'error');
@@ -324,8 +328,13 @@
 
         // Show error report download if available
         var $actions = $('#wprosh-results-actions');
-        if (data.error_report_url) {
-            $('#wprosh-download-report').attr('href', data.error_report_url);
+        var $downloadBtn = $('#wprosh-download-report');
+        
+        if (data.error_report_data) {
+            // Create data URL from base64 content
+            var dataUrl = 'data:text/csv;base64,' + data.error_report_data;
+            $downloadBtn.attr('href', dataUrl);
+            $downloadBtn.attr('download', data.error_report_name || 'wprosh-errors.csv');
             $actions.show();
         } else {
             $actions.hide();

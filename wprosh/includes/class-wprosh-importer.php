@@ -894,27 +894,15 @@ class Wprosh_Importer {
     /**
      * Generate error report CSV
      *
-     * @return string|false File path or false if no errors
+     * @return array|false Array with content and filename, or false if no errors
      */
     private function generate_error_report() {
         if (empty($this->errors)) {
             return false;
         }
         
-        $upload_dir = wp_upload_dir();
-        $wprosh_dir = $upload_dir['basedir'] . '/wprosh';
-        
-        // Create directory if not exists
-        if (!file_exists($wprosh_dir)) {
-            wp_mkdir_p($wprosh_dir);
-        }
-        
-        // Generate filename
-        $filename = 'wprosh-errors-' . date('Y-m-d-H-i-s') . '.csv';
-        $file_path = $wprosh_dir . '/' . $filename;
-        
-        // Create CSV
-        $output = fopen($file_path, 'w');
+        // Generate CSV content in memory
+        $output = fopen('php://temp', 'r+');
         
         // Add BOM for UTF-8
         fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
@@ -947,9 +935,17 @@ class Wprosh_Importer {
             fputcsv($output, $row);
         }
         
+        rewind($output);
+        $csv_content = stream_get_contents($output);
         fclose($output);
         
-        return $file_path;
+        // Generate filename
+        $filename = 'wprosh-errors-' . date('Y-m-d-H-i-s') . '.csv';
+        
+        return array(
+            'content' => base64_encode($csv_content),
+            'filename' => $filename,
+        );
     }
     
     /**
@@ -968,17 +964,6 @@ class Wprosh_Importer {
      */
     public function get_errors() {
         return $this->errors;
-    }
-    
-    /**
-     * Get download URL for error report
-     *
-     * @param string $file_path File path
-     * @return string Download URL
-     */
-    public function get_error_report_url($file_path) {
-        $upload_dir = wp_upload_dir();
-        return str_replace($upload_dir['basedir'], $upload_dir['baseurl'], $file_path);
     }
 }
 

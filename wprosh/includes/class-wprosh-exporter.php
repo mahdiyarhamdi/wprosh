@@ -454,22 +454,38 @@ class Wprosh_Exporter {
      */
     private function save_csv_file($content) {
         $upload_dir = wp_upload_dir();
+        
+        // Check for upload directory errors
+        if (!empty($upload_dir['error'])) {
+            return new WP_Error('upload_dir_error', 'خطا در دسترسی به پوشه آپلود: ' . $upload_dir['error']);
+        }
+        
         $wprosh_dir = $upload_dir['basedir'] . '/wprosh';
         
         // Create directory if not exists
         if (!file_exists($wprosh_dir)) {
-            wp_mkdir_p($wprosh_dir);
+            $created = wp_mkdir_p($wprosh_dir);
+            if (!$created) {
+                return new WP_Error('mkdir_error', 'خطا در ایجاد پوشه wprosh در مسیر uploads. لطفاً دسترسی پوشه uploads را بررسی کنید.');
+            }
+        }
+        
+        // Check if directory is writable
+        if (!is_writable($wprosh_dir)) {
+            return new WP_Error('not_writable', 'پوشه wprosh قابل نوشتن نیست. لطفاً دسترسی (permission) پوشه را به 755 یا 775 تغییر دهید.');
         }
         
         // Generate filename with timestamp
         $filename = 'wprosh-products-' . date('Y-m-d-H-i-s') . '.csv';
         $file_path = $wprosh_dir . '/' . $filename;
         
-        // Write file
-        $result = file_put_contents($file_path, $content);
+        // Write file with error suppression to catch the error message
+        $result = @file_put_contents($file_path, $content);
         
         if ($result === false) {
-            return new WP_Error('write_error', 'خطا در نوشتن فایل CSV.');
+            $error = error_get_last();
+            $error_msg = isset($error['message']) ? $error['message'] : 'دلیل نامشخص';
+            return new WP_Error('write_error', 'خطا در نوشتن فایل CSV: ' . $error_msg);
         }
         
         return $file_path;

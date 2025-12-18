@@ -310,20 +310,24 @@ class Wprosh_Admin {
         }
         
         $exporter = new Wprosh_Exporter();
-        $result = $exporter->export();
-        
-        if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
-        }
-        
-        $download_url = $exporter->get_download_url($result);
         $stats = $exporter->get_statistics();
         
+        if ($stats['total'] === 0) {
+            wp_send_json_error(array('message' => 'هیچ محصولی برای خروجی وجود ندارد.'));
+        }
+        
+        // Generate a secure download URL instead of saving file
+        $download_url = wp_nonce_url(
+            admin_url('admin.php?page=wprosh&action=download'),
+            'wprosh_download'
+        );
+        
         wp_send_json_success(array(
-            'message' => 'خروجی با موفقیت انجام شد!',
+            'message' => 'در حال آماده‌سازی فایل...',
             'download_url' => $download_url,
-            'file_name' => basename($result),
+            'file_name' => 'wprosh-products-' . date('Y-m-d-H-i-s') . '.csv',
             'stats' => $stats,
+            'use_redirect' => true,
         ));
     }
     
@@ -367,27 +371,17 @@ class Wprosh_Admin {
             wp_send_json_error(array('message' => 'فقط فایل‌های CSV مجاز هستند.'));
         }
         
-        // Move uploaded file to uploads directory
-        $upload_dir = wp_upload_dir();
-        $wprosh_dir = $upload_dir['basedir'] . '/wprosh';
+        // Use the temporary uploaded file directly (more reliable)
+        $file_path = $_FILES['file']['tmp_name'];
         
-        if (!file_exists($wprosh_dir)) {
-            wp_mkdir_p($wprosh_dir);
+        // Check if file exists and is readable
+        if (!file_exists($file_path) || !is_readable($file_path)) {
+            wp_send_json_error(array('message' => 'فایل آپلود شده قابل خواندن نیست.'));
         }
         
-        $file_name = 'import-' . date('Y-m-d-H-i-s') . '.csv';
-        $file_path = $wprosh_dir . '/' . $file_name;
-        
-        if (!move_uploaded_file($_FILES['file']['tmp_name'], $file_path)) {
-            wp_send_json_error(array('message' => 'خطا در ذخیره فایل.'));
-        }
-        
-        // Import products
+        // Import products directly from temp file
         $importer = new Wprosh_Importer();
         $result = $importer->import($file_path);
-        
-        // Delete uploaded file after import
-        @unlink($file_path);
         
         if (!$result['success']) {
             wp_send_json_error(array('message' => $result['message']));
@@ -399,9 +393,10 @@ class Wprosh_Admin {
             'errors_count' => count($result['errors']),
         );
         
-        if ($result['error_report']) {
-            $response['error_report_url'] = $importer->get_error_report_url($result['error_report']);
-            $response['error_report_name'] = basename($result['error_report']);
+        // Error report is now returned as base64 content
+        if ($result['error_report'] && is_array($result['error_report'])) {
+            $response['error_report_data'] = $result['error_report']['content'];
+            $response['error_report_name'] = $result['error_report']['filename'];
         }
         
         wp_send_json_success($response);
