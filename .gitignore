@@ -35,3 +35,4 @@ node_modules/
 # Composer (if any)
 vendor/
 
+*.csv
