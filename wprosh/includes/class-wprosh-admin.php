@@ -224,8 +224,17 @@ class Wprosh_Admin {
                         <button type="button" id="wprosh-import-btn" class="wprosh-btn wprosh-btn-success" disabled>
                             <span class="dashicons dashicons-update"></span>
                             <span class="wprosh-btn-text">آپدیت محصولات</span>
-                            <span class="wprosh-spinner"></span>
                         </button>
+                        <!-- Progress Bar -->
+                        <div class="wprosh-progress-container" id="wprosh-progress-container" style="display: none;">
+                            <div class="wprosh-progress">
+                                <div class="wprosh-progress-bar" id="wprosh-progress-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="wprosh-progress-text">
+                                <span id="wprosh-progress-percent">0%</span>
+                                <span id="wprosh-progress-status">در حال آپلود...</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -239,11 +248,15 @@ class Wprosh_Admin {
                     <div class="wprosh-results-stats">
                         <div class="wprosh-result-stat wprosh-result-total">
                             <span class="wprosh-result-number" id="result-total">0</span>
-                            <span class="wprosh-result-label">کل</span>
+                            <span class="wprosh-result-label">کل ردیف‌ها</span>
                         </div>
                         <div class="wprosh-result-stat wprosh-result-success">
                             <span class="wprosh-result-number" id="result-updated">0</span>
-                            <span class="wprosh-result-label">موفق</span>
+                            <span class="wprosh-result-label">آپدیت شده</span>
+                        </div>
+                        <div class="wprosh-result-stat wprosh-result-skipped">
+                            <span class="wprosh-result-number" id="result-skipped">0</span>
+                            <span class="wprosh-result-label">بدون تغییر</span>
                         </div>
                         <div class="wprosh-result-stat wprosh-result-failed">
                             <span class="wprosh-result-number" id="result-failed">0</span>

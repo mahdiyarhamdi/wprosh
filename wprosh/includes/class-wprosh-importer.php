@@ -296,7 +296,17 @@ class Wprosh_Importer {
             return;
         }
         
-        // Validate and prepare data
+        // FIRST: Check if row has any changes before processing
+        $has_changes = $this->row_has_changes($row, $product);
+        
+        if (!$has_changes) {
+            // No changes in this row, skip it
+            $this->results['skipped']++;
+            $this->validator->clear_errors(); // Clear any validation errors
+            return;
+        }
+        
+        // Validate and prepare data (only for changed fields)
         $update_data = $this->prepare_update_data($row, $product);
         
         // Check for critical errors before update
@@ -304,6 +314,17 @@ class Wprosh_Importer {
         if (!empty($critical_errors)) {
             $this->add_errors_from_validator();
             $this->results['failed']++;
+            return;
+        }
+        
+        // If no actual data to update (all validations failed), count as failed
+        if (empty($update_data)) {
+            $this->add_errors_from_validator();
+            if ($this->validator->has_errors()) {
+                $this->results['failed']++;
+            } else {
+                $this->results['skipped']++;
+            }
             return;
         }
         
@@ -317,19 +338,36 @@ class Wprosh_Importer {
             return;
         }
         
-        // Add any non-critical errors
+        // Add any non-critical errors (field-level errors)
         $this->add_errors_from_validator();
         
-        // Check if there were any field errors
-        $row_errors = array_filter($this->errors, function($e) use ($row_number) {
-            return $e['row_number'] === $row_number;
-        });
-        
-        if (!empty($row_errors)) {
-            $this->results['updated']++;
-        } else {
-            $this->results['updated']++;
+        // Count as updated
+        $this->results['updated']++;
+    }
+    
+    /**
+     * Check if a row has any changes compared to current product data
+     *
+     * @param array $row Row data from CSV
+     * @param WC_Product $product Product object
+     * @return bool True if row has changes
+     */
+    private function row_has_changes($row, $product) {
+        foreach ($this->updatable_fields as $field) {
+            if (!isset($row[$field])) {
+                continue;
+            }
+            
+            $csv_value = $row[$field];
+            $current_value = $this->get_current_value($product, $field);
+            
+            // Compare values - if different, row has changes
+            if (!$this->values_are_equal($csv_value, $current_value, $field)) {
+                return true;
+            }
         }
+        
+        return false;
     }
     
     /**

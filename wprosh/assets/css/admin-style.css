@@ -474,6 +474,14 @@
     color: var(--wprosh-success);
 }
 
+.wprosh-result-skipped {
+    background: rgba(107, 114, 128, 0.1);
+}
+
+.wprosh-result-skipped .wprosh-result-number {
+    color: #6b7280;
+}
+
 .wprosh-result-failed {
     background: rgba(239, 68, 68, 0.1);
 }
@@ -494,6 +502,66 @@
     font-size: 13px;
     font-weight: 500;
     color: var(--wprosh-text-muted);
+}
+
+/* Progress Bar Container */
+.wprosh-progress-container {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: var(--wprosh-radius-sm);
+    border: 1px solid var(--wprosh-border);
+}
+
+.wprosh-progress {
+    height: 12px;
+    background: var(--wprosh-border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.wprosh-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--wprosh-success) 0%, #34d399 100%);
+    border-radius: 6px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.wprosh-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,0.3) 50%,
+        transparent 100%
+    );
+    animation: wprosh-shimmer 1.5s infinite;
+}
+
+@keyframes wprosh-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.wprosh-progress-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--wprosh-text-muted);
+}
+
+#wprosh-progress-percent {
+    font-weight: 700;
+    color: var(--wprosh-success);
+    font-size: 15px;
 }
 
 .wprosh-results-message {

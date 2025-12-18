@@ -1,12 +1,12 @@
 === Wprosh - مدیریت CSV محصولات ووکامرس ===
-Contributors: wprosh
+Contributors: mahdiyarhamdi
 Tags: woocommerce, csv, export, import, products
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 8.0
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -88,6 +88,14 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 دلیل عدم آپدیت در فایل گزارش خطاها که پس از آپدیت دانلود می‌شود، توضیح داده شده است.
 
 == تغییرات ==
+
+= 1.1.0 =
+* بهبود: فقط ردیف‌های تغییر کرده آپدیت می‌شوند
+* بهبود: اضافه شدن Progress Bar با درصد پیشرفت
+* بهبود: نمایش تعداد ردیف‌های بدون تغییر (skipped)
+* رفع باگ: گزارش خطاها حالا به درستی دانلود می‌شود
+* رفع باگ: خروجی CSV دیگر HTML نیست
+* توسعه‌دهنده: Seyyed Mahdiyar Hamdi
 
 = 1.0.0 =
 * نسخه اولیه افزونه

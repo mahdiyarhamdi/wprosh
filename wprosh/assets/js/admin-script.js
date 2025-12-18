@@ -2,7 +2,7 @@
  * Wprosh Admin JavaScript
  *
  * @package Wprosh
- * @since 1.0.0
+ * @since 1.1.0
  */
 
 (function($) {
@@ -158,6 +158,34 @@
     }
 
     /**
+     * Show progress bar
+     */
+    function showProgress() {
+        $('#wprosh-import-btn').hide();
+        $('#wprosh-progress-container').show();
+        updateProgress(0, 'در حال آپلود فایل...');
+    }
+
+    /**
+     * Hide progress bar
+     */
+    function hideProgress() {
+        $('#wprosh-progress-container').hide();
+        $('#wprosh-import-btn').show();
+    }
+
+    /**
+     * Update progress bar
+     */
+    function updateProgress(percent, status) {
+        $('#wprosh-progress-bar').css('width', percent + '%');
+        $('#wprosh-progress-percent').text(percent + '%');
+        if (status) {
+            $('#wprosh-progress-status').text(status);
+        }
+    }
+
+    /**
      * Handle export
      */
     function handleExport(e) {
@@ -208,7 +236,7 @@
     }
 
     /**
-     * Handle import
+     * Handle import with progress
      */
     function handleImport(e) {
         e.preventDefault();
@@ -220,9 +248,8 @@
             return;
         }
 
-        var $btn = $(this);
-        setButtonLoading($btn, true);
         isProcessing = true;
+        showProgress();
 
         // Prepare form data
         var formData = new FormData();
@@ -236,26 +263,54 @@
             data: formData,
             processData: false,
             contentType: false,
+            xhr: function() {
+                var xhr = new window.XMLHttpRequest();
+                
+                // Upload progress
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        var percent = Math.round((e.loaded / e.total) * 30); // Upload is 30%
+                        updateProgress(percent, 'در حال آپلود فایل...');
+                    }
+                }, false);
+                
+                return xhr;
+            },
             success: function(response) {
-                if (response.success) {
-                    showResults(response.data);
+                // Simulate processing progress
+                updateProgress(50, 'در حال بررسی تغییرات...');
+                
+                setTimeout(function() {
+                    updateProgress(80, 'در حال آپدیت محصولات...');
                     
-                    // Reset file selection
-                    selectedFile = null;
-                    hideFileInfo();
-                    disableImportButton();
-                    
-                    // Refresh stats
-                    refreshStats();
-                } else {
-                    showToast(response.data.message || wproshData.strings.importError, 'error');
-                }
+                    setTimeout(function() {
+                        updateProgress(100, 'تکمیل شد!');
+                        
+                        setTimeout(function() {
+                            hideProgress();
+                            
+                            if (response.success) {
+                                showResults(response.data);
+                                
+                                // Reset file selection
+                                selectedFile = null;
+                                hideFileInfo();
+                                disableImportButton();
+                                
+                                // Refresh stats
+                                refreshStats();
+                            } else {
+                                showToast(response.data.message || wproshData.strings.importError, 'error');
+                            }
+                            
+                            isProcessing = false;
+                        }, 500);
+                    }, 300);
+                }, 300);
             },
             error: function(xhr, status, error) {
+                hideProgress();
                 showToast(wproshData.strings.importError + ': ' + error, 'error');
-            },
-            complete: function() {
-                setButtonLoading($btn, false);
                 isProcessing = false;
             }
         });
@@ -293,13 +348,25 @@
     }
 
     /**
-     * Download file
+     * Download file from data URL
      */
     function downloadFile(url, filename) {
         var link = document.createElement('a');
         link.href = url;
-        link.download = filename;
+        link.download = filename || 'download';
         link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    /**
+     * Download from base64 data
+     */
+    function downloadBase64File(base64Data, filename) {
+        var link = document.createElement('a');
+        link.href = 'data:text/csv;charset=utf-8;base64,' + base64Data;
+        link.download = filename || 'wprosh-errors.csv';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -311,30 +378,38 @@
     function showResults(data) {
         var $results = $('#wprosh-results');
         
-        // Update numbers
-        $('#result-total').text(data.results.total);
-        $('#result-updated').text(data.results.updated);
-        $('#result-failed').text(data.results.failed);
+        // Update numbers with animation
+        animateNumber($('#result-total'), 0, data.results.total);
+        animateNumber($('#result-updated'), 0, data.results.updated);
+        animateNumber($('#result-skipped'), 0, data.results.skipped || 0);
+        animateNumber($('#result-failed'), 0, data.results.failed);
 
         // Update message
         var $message = $('#wprosh-results-message');
-        if (data.errors_count > 0) {
-            $message.html('آپدیت انجام شد. <strong>' + data.errors_count + '</strong> خطا وجود دارد.');
-            $message.addClass('has-errors');
+        var hasErrors = data.errors_count > 0;
+        
+        if (hasErrors) {
+            $message.html('<strong>' + data.results.updated + '</strong> محصول آپدیت شد. <strong>' + data.errors_count + '</strong> خطا در فیلدها وجود دارد.');
+            $message.addClass('has-errors').removeClass('no-errors');
+        } else if (data.results.updated > 0) {
+            $message.html('<strong>' + data.results.updated + '</strong> محصول با موفقیت آپدیت شد.');
+            $message.removeClass('has-errors').addClass('no-errors');
         } else {
-            $message.text(wproshData.strings.noErrors);
-            $message.removeClass('has-errors');
+            $message.text('هیچ تغییری در محصولات یافت نشد.');
+            $message.removeClass('has-errors').addClass('no-errors');
         }
 
         // Show error report download if available
         var $actions = $('#wprosh-results-actions');
         var $downloadBtn = $('#wprosh-download-report');
         
-        if (data.error_report_data) {
-            // Create data URL from base64 content
-            var dataUrl = 'data:text/csv;base64,' + data.error_report_data;
-            $downloadBtn.attr('href', dataUrl);
-            $downloadBtn.attr('download', data.error_report_name || 'wprosh-errors.csv');
+        if (data.error_report_data && hasErrors) {
+            // Bind click event to download base64 file
+            $downloadBtn.off('click').on('click', function(e) {
+                e.preventDefault();
+                downloadBase64File(data.error_report_data, data.error_report_name || 'wprosh-errors.csv');
+            });
+            $downloadBtn.attr('href', '#');
             $actions.show();
         } else {
             $actions.hide();
@@ -348,7 +423,12 @@
             scrollTop: $results.offset().top - 100
         }, 500);
 
-        showToast(data.message, 'success');
+        // Show appropriate toast
+        if (data.results.updated > 0) {
+            showToast(data.results.updated + ' محصول آپدیت شد', 'success');
+        } else {
+            showToast('هیچ تغییری اعمال نشد', 'success');
+        }
     }
 
     /**
@@ -412,4 +492,3 @@
     $(document).ready(init);
 
 })(jQuery);
-
