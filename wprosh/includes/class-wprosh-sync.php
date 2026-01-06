@@ -372,13 +372,17 @@ class Wprosh_Sync {
         
         // Get other fields
         $name = isset($row['نام کالا']) ? trim($row['نام کالا']) : '';
-        $regular_price = isset($row['قیمت فروش']) ? $this->sanitize_price($row['قیمت فروش']) : '';
+        $regular_price_rial = isset($row['قیمت فروش']) ? $this->sanitize_price($row['قیمت فروش']) : '';
         $stock_quantity = isset($row['موجودی اولیه']) ? intval($row['موجودی اولیه']) : 0;
-        $sale_discount = isset($row['تخفیف فروش']) ? $this->sanitize_price($row['تخفیف فروش']) : 0;
+        $sale_discount_rial = isset($row['تخفیف فروش']) ? $this->sanitize_price($row['تخفیف فروش']) : 0;
         
-        // Calculate sale price
+        // Convert Rial to Toman (divide by 10)
+        $regular_price = $regular_price_rial !== '' ? floor(floatval($regular_price_rial) / 10) : '';
+        $sale_discount = $sale_discount_rial > 0 ? floor(floatval($sale_discount_rial) / 10) : 0;
+        
+        // Calculate sale price (in Toman)
         $sale_price = '';
-        if ($regular_price && $sale_discount > 0) {
+        if ($regular_price !== '' && $sale_discount > 0) {
             $sale_price = max(0, floatval($regular_price) - floatval($sale_discount));
         }
         
@@ -428,6 +432,12 @@ class Wprosh_Sync {
             
             if ($sale_price !== '' && $sale_price > 0) {
                 $product->set_sale_price($sale_price);
+            }
+            
+            // Set default category "دسته بندی نشده" with slug "uncat"
+            $default_category = $this->get_or_create_default_category();
+            if ($default_category) {
+                $product->set_category_ids(array($default_category));
             }
             
             $product_id = $product->save();
@@ -508,6 +518,44 @@ class Wprosh_Sync {
             $this->add_error($row_number, $product_id, 'sku', $sku, 'ERROR', $e->getMessage(), 'دوباره تلاش کنید');
             $this->results['failed']++;
         }
+    }
+    
+    /**
+     * Get or create the default category "دسته بندی نشده"
+     *
+     * @return int|false Category ID or false on failure
+     */
+    private function get_or_create_default_category() {
+        $category_slug = 'uncat';
+        $category_name = 'دسته بندی نشده';
+        
+        // Try to get existing category by slug
+        $term = get_term_by('slug', $category_slug, 'product_cat');
+        
+        if ($term && !is_wp_error($term)) {
+            return $term->term_id;
+        }
+        
+        // Create the category if it doesn't exist
+        $result = wp_insert_term(
+            $category_name,
+            'product_cat',
+            array(
+                'slug' => $category_slug,
+                'description' => 'محصولات دسته‌بندی نشده از همگام‌سازی با حسابداری',
+            )
+        );
+        
+        if (is_wp_error($result)) {
+            // If error is because term exists, try to get it
+            if ($result->get_error_code() === 'term_exists') {
+                $existing_term_id = $result->get_error_data('term_exists');
+                return $existing_term_id;
+            }
+            return false;
+        }
+        
+        return $result['term_id'];
     }
     
     /**
