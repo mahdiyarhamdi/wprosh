@@ -97,6 +97,24 @@ class Wprosh_Importer {
     );
     
     /**
+     * Blacklisted fields - NEVER process these to prevent accidental data loss
+     * Images are excluded to prevent accidental deletion
+     *
+     * @var array
+     */
+    private $blacklisted_fields = array(
+        'image_id',
+        'image',
+        'images',
+        'gallery_image_ids',
+        'gallery_images',
+        'featured_image',
+        'product_image',
+        'thumbnail',
+        'thumbnail_id',
+    );
+    
+    /**
      * Constructor
      */
     public function __construct() {
@@ -354,6 +372,11 @@ class Wprosh_Importer {
      */
     private function row_has_changes($row, $product) {
         foreach ($this->updatable_fields as $field) {
+            // Skip blacklisted fields (images, etc.)
+            if (in_array($field, $this->blacklisted_fields)) {
+                continue;
+            }
+            
             if (!isset($row[$field])) {
                 continue;
             }
@@ -383,6 +406,11 @@ class Wprosh_Importer {
         $product_id = $product->get_id();
         
         foreach ($this->updatable_fields as $field) {
+            // Skip blacklisted fields (images, etc.) - NEVER process these
+            if (in_array($field, $this->blacklisted_fields)) {
+                continue;
+            }
+            
             if (!isset($row[$field])) {
                 continue;
             }

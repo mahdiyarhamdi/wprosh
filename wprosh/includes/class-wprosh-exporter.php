@@ -34,6 +34,10 @@ class Wprosh_Exporter {
     
     /**
      * Initialize CSV columns
+     * 
+     * NOTE: Image fields are intentionally EXCLUDED to prevent accidental deletion:
+     * - image_id, images, image, gallery_image_ids, featured_image
+     * These fields should NEVER be added to this list.
      */
     private function init_columns() {
         $this->columns = array(
@@ -73,6 +77,7 @@ class Wprosh_Exporter {
             'sold_individually' => 'فروش تکی',
             'upsell_ids' => 'محصولات پیشنهادی',
             'cross_sell_ids' => 'محصولات مرتبط',
+            // EXCLUDED: image_id, images, image, gallery_image_ids - to prevent deletion
         );
     }
     
