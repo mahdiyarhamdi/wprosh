@@ -742,6 +742,10 @@ class Wprosh_Importer {
         }
         
         try {
+            // IMPORTANT: Save image IDs BEFORE any changes to prevent accidental deletion
+            $original_image_id = $product->get_image_id();
+            $original_gallery_ids = $product->get_gallery_image_ids();
+            
             foreach ($data as $field => $value) {
                 switch ($field) {
                     case 'sku':
@@ -862,6 +866,15 @@ class Wprosh_Importer {
                 }
             }
             
+            // CRITICAL: Restore original images to prevent any accidental deletion
+            // This ensures images are NEVER modified by this plugin
+            if ($original_image_id) {
+                $product->set_image_id($original_image_id);
+            }
+            if (!empty($original_gallery_ids)) {
+                $product->set_gallery_image_ids($original_gallery_ids);
+            }
+            
             $product->save();
             return true;
             
@@ -873,7 +886,7 @@ class Wprosh_Importer {
     }
     
     /**
-     * Set product attributes
+     * Set product attributes - MERGES with existing attributes instead of replacing
      *
      * @param WC_Product $product Product object
      * @param array $attributes Attributes data
@@ -883,9 +896,19 @@ class Wprosh_Importer {
             return;
         }
         
+        // Get existing attributes to MERGE with (not replace)
+        $existing_attributes = $product->get_attributes();
         $product_attributes = array();
-        $position = 0;
         
+        // First, copy all existing attributes
+        foreach ($existing_attributes as $key => $existing_attr) {
+            $product_attributes[$key] = $existing_attr;
+        }
+        
+        // Get the next position
+        $position = count($product_attributes);
+        
+        // Now update/add new attributes from CSV
         foreach ($attributes as $name => $attr_data) {
             if ($attr_data['is_taxonomy']) {
                 // Taxonomy attribute
@@ -905,23 +928,34 @@ class Wprosh_Importer {
                 $attribute->set_options($term_ids);
                 $attribute->set_visible(true);
                 $attribute->set_variation($product->is_type('variable'));
-                $attribute->set_position($position);
+                
+                // Keep existing position if attribute exists, else use next position
+                if (isset($product_attributes[$attr_data['name']])) {
+                    $attribute->set_position($product_attributes[$attr_data['name']]->get_position());
+                } else {
+                    $attribute->set_position($position++);
+                }
                 
                 $product_attributes[$attr_data['name']] = $attribute;
             } else {
                 // Custom attribute
+                $attr_key = sanitize_title($attr_data['name']);
                 $attribute = new WC_Product_Attribute();
                 $attribute->set_id(0);
                 $attribute->set_name($attr_data['name']);
                 $attribute->set_options(explode('|', $attr_data['value']));
                 $attribute->set_visible(true);
                 $attribute->set_variation(false);
-                $attribute->set_position($position);
                 
-                $product_attributes[sanitize_title($attr_data['name'])] = $attribute;
+                // Keep existing position if attribute exists
+                if (isset($product_attributes[$attr_key])) {
+                    $attribute->set_position($product_attributes[$attr_key]->get_position());
+                } else {
+                    $attribute->set_position($position++);
+                }
+                
+                $product_attributes[$attr_key] = $attribute;
             }
-            
-            $position++;
         }
         
         $product->set_attributes($product_attributes);

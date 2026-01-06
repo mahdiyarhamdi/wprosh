@@ -6,7 +6,7 @@ Tested up to: 6.4
 Requires PHP: 7.4
 WC requires at least: 5.0
 WC tested up to: 8.0
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -88,6 +88,11 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 دلیل عدم آپدیت در فایل گزارش خطاها که پس از آپدیت دانلود می‌شود، توضیح داده شده است.
 
 == تغییرات ==
+
+= 1.1.1 =
+* رفع باگ بحرانی: جلوگیری از حذف تصادفی عکس‌های محصولات
+* بهبود: ویژگی‌ها (Attributes) حالا ادغام می‌شوند نه جایگزین
+* امنیت: بازیابی خودکار تصاویر قبل از ذخیره محصول
 
 = 1.1.0 =
 * بهبود: فقط ردیف‌های تغییر کرده آپدیت می‌شوند
