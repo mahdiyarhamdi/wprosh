@@ -138,7 +138,7 @@
 /* Cards Container */
 .wprosh-cards {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 30px;
     margin-bottom: 30px;
 }
@@ -669,6 +669,12 @@
     }
 }
 
+@media (max-width: 1400px) {
+    .wprosh-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 900px) {
     .wprosh-cards {
         grid-template-columns: 1fr;
@@ -757,6 +763,64 @@
 /* Import Card Specific */
 .wprosh-import-card .wprosh-card-header .dashicons {
     color: var(--wprosh-success);
+}
+
+/* Sync Card Specific */
+.wprosh-sync-card .wprosh-card-header .dashicons {
+    color: #f97316;
+}
+
+.wprosh-btn-sync {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+}
+
+.wprosh-btn-sync:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+/* Sync Features List */
+.wprosh-sync-features .dashicons {
+    color: #f97316;
+}
+
+.wprosh-sync-features li .dashicons-plus-alt {
+    color: var(--wprosh-success);
+}
+
+.wprosh-sync-features li .dashicons-update {
+    color: var(--wprosh-primary);
+}
+
+.wprosh-sync-features li .dashicons-download {
+    color: #f97316;
+}
+
+/* Sync Results */
+.wprosh-sync-results .wprosh-results-stats {
+    flex-wrap: wrap;
+}
+
+.wprosh-result-created {
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.wprosh-result-created .wprosh-result-number {
+    color: #22c55e;
+}
+
+/* Sync Results Actions */
+.wprosh-sync-results .wprosh-results-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.wprosh-sync-results .wprosh-results-actions .wprosh-btn {
+    margin-top: 8px;
 }
 
 /* Progress Bar (for future use) */

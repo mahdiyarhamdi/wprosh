@@ -2,7 +2,7 @@
  * Wprosh Admin JavaScript
  *
  * @package Wprosh
- * @since 1.1.0
+ * @since 1.2.0
  */
 
 (function($) {
@@ -10,6 +10,7 @@
 
     // Variables
     var selectedFile = null;
+    var selectedSyncFile = null;
     var isProcessing = false;
 
     /**
@@ -35,12 +36,22 @@
 
         // Remove file button
         $('#wprosh-remove-file').on('click', handleRemoveFile);
+
+        // Sync button
+        $('#wprosh-sync-btn').on('click', handleSync);
+
+        // Sync file input change
+        $('#wprosh-sync-file-input').on('change', handleSyncFileSelect);
+
+        // Sync remove file button
+        $('#wprosh-sync-remove-file').on('click', handleSyncRemoveFile);
     }
 
     /**
      * Initialize drag and drop
      */
     function initDragDrop() {
+        // Import upload area
         var uploadArea = $('#wprosh-upload-area');
 
         uploadArea.on('dragover dragenter', function(e) {
@@ -62,6 +73,31 @@
             var files = e.originalEvent.dataTransfer.files;
             if (files.length > 0) {
                 handleFileDropped(files[0]);
+            }
+        });
+
+        // Sync upload area
+        var syncUploadArea = $('#wprosh-sync-upload-area');
+
+        syncUploadArea.on('dragover dragenter', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).addClass('dragover');
+        });
+
+        syncUploadArea.on('dragleave dragend drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('dragover');
+        });
+
+        syncUploadArea.on('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            var files = e.originalEvent.dataTransfer.files;
+            if (files.length > 0) {
+                handleSyncFileDropped(files[0]);
             }
         });
     }
@@ -144,6 +180,97 @@
     }
 
     /**
+     * Handle sync file dropped
+     */
+    function handleSyncFileDropped(file) {
+        if (!validateSyncFile(file)) {
+            return;
+        }
+
+        selectedSyncFile = file;
+        showSyncFileInfo(file);
+        enableSyncButton();
+    }
+
+    /**
+     * Handle sync file select
+     */
+    function handleSyncFileSelect(e) {
+        var file = e.target.files[0];
+        
+        if (!file) {
+            return;
+        }
+
+        if (!validateSyncFile(file)) {
+            $(this).val('');
+            return;
+        }
+
+        selectedSyncFile = file;
+        showSyncFileInfo(file);
+        enableSyncButton();
+    }
+
+    /**
+     * Validate sync file (CSV or XLSX)
+     */
+    function validateSyncFile(file) {
+        var extension = file.name.split('.').pop().toLowerCase();
+        
+        if (extension !== 'csv' && extension !== 'xlsx') {
+            showToast(wproshData.strings.invalidSyncFile || 'فقط فایل‌های CSV و XLSX مجاز هستند', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Show sync file info
+     */
+    function showSyncFileInfo(file) {
+        $('#wprosh-sync-file-name').text(file.name);
+        $('#wprosh-sync-file-info').show();
+        $('#wprosh-sync-upload-area .wprosh-upload-label').hide();
+    }
+
+    /**
+     * Hide sync file info
+     */
+    function hideSyncFileInfo() {
+        $('#wprosh-sync-file-info').hide();
+        $('#wprosh-sync-upload-area .wprosh-upload-label').show();
+        $('#wprosh-sync-file-input').val('');
+    }
+
+    /**
+     * Handle sync remove file
+     */
+    function handleSyncRemoveFile(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        selectedSyncFile = null;
+        hideSyncFileInfo();
+        disableSyncButton();
+    }
+
+    /**
+     * Enable sync button
+     */
+    function enableSyncButton() {
+        $('#wprosh-sync-btn').prop('disabled', false);
+    }
+
+    /**
+     * Disable sync button
+     */
+    function disableSyncButton() {
+        $('#wprosh-sync-btn').prop('disabled', true);
+    }
+
+    /**
      * Enable import button
      */
     function enableImportButton() {
@@ -158,7 +285,7 @@
     }
 
     /**
-     * Show progress bar
+     * Show progress bar (import)
      */
     function showProgress() {
         $('#wprosh-import-btn').hide();
@@ -167,7 +294,7 @@
     }
 
     /**
-     * Hide progress bar
+     * Hide progress bar (import)
      */
     function hideProgress() {
         $('#wprosh-progress-container').hide();
@@ -175,13 +302,41 @@
     }
 
     /**
-     * Update progress bar
+     * Update progress bar (import)
      */
     function updateProgress(percent, status) {
         $('#wprosh-progress-bar').css('width', percent + '%');
         $('#wprosh-progress-percent').text(percent + '%');
         if (status) {
             $('#wprosh-progress-status').text(status);
+        }
+    }
+
+    /**
+     * Show progress bar (sync)
+     */
+    function showSyncProgress() {
+        $('#wprosh-sync-btn').hide();
+        $('#wprosh-sync-progress-container').show();
+        updateSyncProgress(0, 'در حال آپلود فایل...');
+    }
+
+    /**
+     * Hide progress bar (sync)
+     */
+    function hideSyncProgress() {
+        $('#wprosh-sync-progress-container').hide();
+        $('#wprosh-sync-btn').show();
+    }
+
+    /**
+     * Update progress bar (sync)
+     */
+    function updateSyncProgress(percent, status) {
+        $('#wprosh-sync-progress-bar').css('width', percent + '%');
+        $('#wprosh-sync-progress-percent').text(percent + '%');
+        if (status) {
+            $('#wprosh-sync-progress-status').text(status);
         }
     }
 
@@ -314,6 +469,171 @@
                 isProcessing = false;
             }
         });
+    }
+
+    /**
+     * Handle sync with accounting software
+     */
+    function handleSync(e) {
+        e.preventDefault();
+
+        if (isProcessing || !selectedSyncFile) {
+            if (!selectedSyncFile) {
+                showToast(wproshData.strings.selectSyncFile || 'لطفاً یک فایل انتخاب کنید', 'error');
+            }
+            return;
+        }
+
+        isProcessing = true;
+        showSyncProgress();
+
+        // Prepare form data
+        var formData = new FormData();
+        formData.append('action', 'wprosh_sync');
+        formData.append('nonce', wproshData.nonce);
+        formData.append('file', selectedSyncFile);
+
+        $.ajax({
+            url: wproshData.ajaxUrl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function() {
+                var xhr = new window.XMLHttpRequest();
+                
+                // Upload progress
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        var percent = Math.round((e.loaded / e.total) * 30);
+                        updateSyncProgress(percent, 'در حال آپلود فایل...');
+                    }
+                }, false);
+                
+                return xhr;
+            },
+            success: function(response) {
+                // Simulate processing progress
+                updateSyncProgress(50, 'در حال پردازش داده‌ها...');
+                
+                setTimeout(function() {
+                    updateSyncProgress(80, 'در حال همگام‌سازی محصولات...');
+                    
+                    setTimeout(function() {
+                        updateSyncProgress(100, 'تکمیل شد!');
+                        
+                        setTimeout(function() {
+                            hideSyncProgress();
+                            
+                            if (response.success) {
+                                showSyncResults(response.data);
+                                
+                                // Reset file selection
+                                selectedSyncFile = null;
+                                hideSyncFileInfo();
+                                disableSyncButton();
+                                
+                                // Refresh stats
+                                refreshStats();
+                            } else {
+                                showToast(response.data.message || wproshData.strings.syncError || 'خطا در همگام‌سازی', 'error');
+                            }
+                            
+                            isProcessing = false;
+                        }, 500);
+                    }, 300);
+                }, 300);
+            },
+            error: function(xhr, status, error) {
+                hideSyncProgress();
+                showToast((wproshData.strings.syncError || 'خطا در همگام‌سازی') + ': ' + error, 'error');
+                isProcessing = false;
+            }
+        });
+    }
+
+    /**
+     * Show sync results
+     */
+    function showSyncResults(data) {
+        var $results = $('#wprosh-sync-results');
+        
+        // Update numbers with animation
+        animateNumber($('#sync-result-total'), 0, data.results.total);
+        animateNumber($('#sync-result-created'), 0, data.results.created || 0);
+        animateNumber($('#sync-result-updated'), 0, data.results.updated);
+        animateNumber($('#sync-result-skipped'), 0, data.results.skipped || 0);
+        animateNumber($('#sync-result-failed'), 0, data.results.failed);
+
+        // Update message
+        var $message = $('#wprosh-sync-results-message');
+        var hasErrors = data.results.failed > 0;
+        var created = data.results.created || 0;
+        var updated = data.results.updated || 0;
+        
+        var messageText = '';
+        if (created > 0) {
+            messageText += '<strong>' + created + '</strong> محصول جدید ایجاد شد. ';
+        }
+        if (updated > 0) {
+            messageText += '<strong>' + updated + '</strong> محصول آپدیت شد. ';
+        }
+        if (hasErrors) {
+            messageText += '<strong>' + data.results.failed + '</strong> خطا وجود دارد.';
+            $message.addClass('has-errors').removeClass('no-errors');
+        } else {
+            $message.removeClass('has-errors').addClass('no-errors');
+        }
+        
+        if (messageText === '') {
+            messageText = 'هیچ تغییری اعمال نشد.';
+        }
+        
+        $message.html(messageText);
+
+        // Show output CSV download button
+        var $outputBtn = $('#wprosh-sync-download-output');
+        if (data.output_csv_data) {
+            $outputBtn.off('click').on('click', function(e) {
+                e.preventDefault();
+                downloadBase64File(data.output_csv_data, data.output_csv_name || 'wprosh-sync-output.csv');
+            });
+            $outputBtn.show();
+        } else {
+            $outputBtn.hide();
+        }
+
+        // Show error report download button
+        var $errorBtn = $('#wprosh-sync-download-report');
+        if (data.error_report_data && hasErrors) {
+            $errorBtn.off('click').on('click', function(e) {
+                e.preventDefault();
+                downloadBase64File(data.error_report_data, data.error_report_name || 'wprosh-sync-errors.csv');
+            });
+            $errorBtn.show();
+        } else {
+            $errorBtn.hide();
+        }
+
+        // Show results section
+        $results.slideDown(300);
+
+        // Scroll to results
+        $('html, body').animate({
+            scrollTop: $results.offset().top - 100
+        }, 500);
+
+        // Show appropriate toast
+        if (created > 0 || updated > 0) {
+            var toastMsg = '';
+            if (created > 0) toastMsg += created + ' محصول ایجاد ';
+            if (created > 0 && updated > 0) toastMsg += 'و ';
+            if (updated > 0) toastMsg += updated + ' محصول آپدیت ';
+            toastMsg += 'شد';
+            showToast(toastMsg, 'success');
+        } else {
+            showToast('هیچ تغییری اعمال نشد', 'success');
+        }
     }
 
     /**

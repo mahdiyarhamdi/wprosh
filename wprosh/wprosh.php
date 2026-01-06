@@ -3,7 +3,7 @@
  * Plugin Name: Wprosh - مدیریت CSV محصولات ووکامرس
  * Plugin URI: https://github.com/mahdiyarhamdi/wprosh
  * Description: خروجی گرفتن و آپدیت محصولات ووکامرس با فایل CSV به همراه گزارش خطای کامل
- * Version: 1.1.1
+ * Version: 1.2.0
  * Author: Seyyed Mahdiyar Hamdi
  * Author URI: https://github.com/mahdiyarhamdi
  * License: GPL v2 or later
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WPROSH_VERSION', '1.1.1');
+define('WPROSH_VERSION', '1.2.0');
 define('WPROSH_PLUGIN_FILE', __FILE__);
 define('WPROSH_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WPROSH_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -133,6 +133,7 @@ final class Wprosh {
         require_once WPROSH_PLUGIN_DIR . 'includes/class-wprosh-validator.php';
         require_once WPROSH_PLUGIN_DIR . 'includes/class-wprosh-exporter.php';
         require_once WPROSH_PLUGIN_DIR . 'includes/class-wprosh-importer.php';
+        require_once WPROSH_PLUGIN_DIR . 'includes/class-wprosh-sync.php';
         require_once WPROSH_PLUGIN_DIR . 'includes/class-wprosh-admin.php';
     }
     

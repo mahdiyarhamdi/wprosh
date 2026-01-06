@@ -59,6 +59,7 @@ class Wprosh_Admin {
         add_action('wp_ajax_wprosh_import', array($this, 'ajax_import'));
         add_action('wp_ajax_wprosh_get_stats', array($this, 'ajax_get_stats'));
         add_action('wp_ajax_wprosh_download', array($this, 'ajax_download'));
+        add_action('wp_ajax_wprosh_sync', array($this, 'ajax_sync'));
     }
     
     /**
@@ -121,6 +122,14 @@ class Wprosh_Admin {
                 'processing' => 'در حال پردازش...',
                 'downloadReport' => 'دانلود گزارش خطاها',
                 'noErrors' => 'تمام محصولات با موفقیت آپدیت شدند',
+                // Sync strings
+                'syncing' => 'در حال همگام‌سازی...',
+                'syncSuccess' => 'همگام‌سازی با موفقیت انجام شد!',
+                'syncError' => 'خطا در همگام‌سازی',
+                'selectSyncFile' => 'لطفاً یک فایل CSV یا XLSX انتخاب کنید',
+                'invalidSyncFile' => 'فقط فایل‌های CSV و XLSX مجاز هستند',
+                'downloadSyncOutput' => 'دانلود خروجی CSV',
+                'syncNoProducts' => 'محصولی برای همگام‌سازی یافت نشد',
             ),
         ));
     }
@@ -235,6 +244,97 @@ class Wprosh_Admin {
                                 <span id="wprosh-progress-status">در حال آپلود...</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Sync Card (Accounting Software) -->
+                <div class="wprosh-card wprosh-sync-card">
+                    <div class="wprosh-card-header">
+                        <span class="dashicons dashicons-update-alt"></span>
+                        <h2>همگام‌سازی با حسابداری</h2>
+                    </div>
+                    <div class="wprosh-card-body">
+                        <p class="wprosh-card-description">
+                            فایل خروجی نرم‌افزار حسابداری را آپلود کنید. محصولات جدید ایجاد و محصولات موجود آپدیت می‌شوند.
+                        </p>
+                        <div class="wprosh-upload-area" id="wprosh-sync-upload-area">
+                            <input type="file" id="wprosh-sync-file-input" accept=".csv,.xlsx" class="wprosh-file-input">
+                            <label for="wprosh-sync-file-input" class="wprosh-upload-label">
+                                <span class="dashicons dashicons-cloud-upload"></span>
+                                <span class="wprosh-upload-text">فایل CSV یا XLSX را اینجا رها کنید یا کلیک کنید</span>
+                                <span class="wprosh-upload-hint">فایل‌های CSV و XLSX</span>
+                            </label>
+                            <div class="wprosh-file-info" id="wprosh-sync-file-info" style="display: none;">
+                                <span class="dashicons dashicons-media-spreadsheet"></span>
+                                <span class="wprosh-file-name" id="wprosh-sync-file-name"></span>
+                                <button type="button" id="wprosh-sync-remove-file" class="wprosh-remove-file">
+                                    <span class="dashicons dashicons-no-alt"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <ul class="wprosh-features wprosh-sync-features">
+                            <li><span class="dashicons dashicons-plus-alt"></span> ایجاد محصولات جدید (بر اساس سریال)</li>
+                            <li><span class="dashicons dashicons-update"></span> آپدیت موجودی و قیمت محصولات موجود</li>
+                            <li><span class="dashicons dashicons-download"></span> خروجی CSV سازگار با آپدیت محصولات</li>
+                        </ul>
+                    </div>
+                    <div class="wprosh-card-footer">
+                        <button type="button" id="wprosh-sync-btn" class="wprosh-btn wprosh-btn-sync" disabled>
+                            <span class="dashicons dashicons-update-alt"></span>
+                            <span class="wprosh-btn-text">همگام‌سازی</span>
+                        </button>
+                        <!-- Progress Bar for Sync -->
+                        <div class="wprosh-progress-container" id="wprosh-sync-progress-container" style="display: none;">
+                            <div class="wprosh-progress">
+                                <div class="wprosh-progress-bar" id="wprosh-sync-progress-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="wprosh-progress-text">
+                                <span id="wprosh-sync-progress-percent">0%</span>
+                                <span id="wprosh-sync-progress-status">در حال پردازش...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sync Results Section -->
+            <div class="wprosh-results wprosh-sync-results" id="wprosh-sync-results" style="display: none;">
+                <div class="wprosh-results-header">
+                    <h3>نتیجه همگام‌سازی</h3>
+                </div>
+                <div class="wprosh-results-body">
+                    <div class="wprosh-results-stats">
+                        <div class="wprosh-result-stat wprosh-result-total">
+                            <span class="wprosh-result-number" id="sync-result-total">0</span>
+                            <span class="wprosh-result-label">کل ردیف‌ها</span>
+                        </div>
+                        <div class="wprosh-result-stat wprosh-result-created">
+                            <span class="wprosh-result-number" id="sync-result-created">0</span>
+                            <span class="wprosh-result-label">ایجاد شده</span>
+                        </div>
+                        <div class="wprosh-result-stat wprosh-result-success">
+                            <span class="wprosh-result-number" id="sync-result-updated">0</span>
+                            <span class="wprosh-result-label">آپدیت شده</span>
+                        </div>
+                        <div class="wprosh-result-stat wprosh-result-skipped">
+                            <span class="wprosh-result-number" id="sync-result-skipped">0</span>
+                            <span class="wprosh-result-label">نادیده گرفته</span>
+                        </div>
+                        <div class="wprosh-result-stat wprosh-result-failed">
+                            <span class="wprosh-result-number" id="sync-result-failed">0</span>
+                            <span class="wprosh-result-label">ناموفق</span>
+                        </div>
+                    </div>
+                    <div class="wprosh-results-message" id="wprosh-sync-results-message"></div>
+                    <div class="wprosh-results-actions" id="wprosh-sync-results-actions">
+                        <a href="#" id="wprosh-sync-download-output" class="wprosh-btn wprosh-btn-primary" style="display: none;">
+                            <span class="dashicons dashicons-download"></span>
+                            دانلود خروجی CSV
+                        </a>
+                        <a href="#" id="wprosh-sync-download-report" class="wprosh-btn wprosh-btn-warning" style="display: none;">
+                            <span class="dashicons dashicons-download"></span>
+                            دانلود گزارش خطاها
+                        </a>
                     </div>
                 </div>
             </div>
@@ -451,6 +551,84 @@ class Wprosh_Admin {
         $exporter = new Wprosh_Exporter();
         $exporter->stream_export();
         // stream_export calls exit() so nothing after this runs
+    }
+    
+    /**
+     * AJAX: Sync with accounting software
+     */
+    public function ajax_sync() {
+        // Verify nonce
+        if (!check_ajax_referer('wprosh_nonce', 'nonce', false)) {
+            wp_send_json_error(array('message' => 'خطای امنیتی. لطفاً صفحه را رفرش کنید.'));
+        }
+        
+        // Check permission
+        if (!current_user_can('edit_products')) {
+            wp_send_json_error(array('message' => 'شما دسترسی به این عملیات را ندارید.'));
+        }
+        
+        // Check file upload
+        if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            $error_message = 'خطا در آپلود فایل.';
+            if (isset($_FILES['file']['error'])) {
+                switch ($_FILES['file']['error']) {
+                    case UPLOAD_ERR_INI_SIZE:
+                    case UPLOAD_ERR_FORM_SIZE:
+                        $error_message = 'حجم فایل بیش از حد مجاز است.';
+                        break;
+                    case UPLOAD_ERR_PARTIAL:
+                        $error_message = 'فایل به طور کامل آپلود نشد.';
+                        break;
+                    case UPLOAD_ERR_NO_FILE:
+                        $error_message = 'هیچ فایلی انتخاب نشده است.';
+                        break;
+                }
+            }
+            wp_send_json_error(array('message' => $error_message));
+        }
+        
+        // Validate file type (CSV or XLSX)
+        $file_name = $_FILES['file']['name'];
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+        
+        if (!in_array($file_ext, array('csv', 'xlsx'))) {
+            wp_send_json_error(array('message' => 'فقط فایل‌های CSV و XLSX مجاز هستند.'));
+        }
+        
+        // Use the temporary uploaded file directly
+        $file_path = $_FILES['file']['tmp_name'];
+        
+        // Check if file exists and is readable
+        if (!file_exists($file_path) || !is_readable($file_path)) {
+            wp_send_json_error(array('message' => 'فایل آپلود شده قابل خواندن نیست.'));
+        }
+        
+        // Process with sync class
+        $sync = new Wprosh_Sync();
+        $result = $sync->process($file_path, $file_ext);
+        
+        if (!$result['success']) {
+            wp_send_json_error(array('message' => $result['message']));
+        }
+        
+        $response = array(
+            'message' => 'همگام‌سازی با موفقیت انجام شد!',
+            'results' => $result['results'],
+        );
+        
+        // Output CSV for download
+        if ($result['output_csv'] && is_array($result['output_csv'])) {
+            $response['output_csv_data'] = $result['output_csv']['content'];
+            $response['output_csv_name'] = $result['output_csv']['filename'];
+        }
+        
+        // Error report for download
+        if ($result['error_report'] && is_array($result['error_report'])) {
+            $response['error_report_data'] = $result['error_report']['content'];
+            $response['error_report_name'] = $result['error_report']['filename'];
+        }
+        
+        wp_send_json_success($response);
     }
 }
 
